@@ -3,6 +3,7 @@ X12 Code set registry.
 
 Manages code sets for X12 element validation.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -11,24 +12,25 @@ from dataclasses import dataclass, field
 @dataclass
 class CodeSet:
     """A set of valid codes with descriptions.
-    
+
     Attributes:
         name: Unique identifier for the code set.
         description: Human-readable description.
         codes: Dictionary mapping codes to descriptions.
     """
+
     name: str
     description: str
     codes: dict[str, str] = field(default_factory=dict)
-    
+
     def __contains__(self, code: str) -> bool:
         """Check if code exists in set."""
         return code in self.codes
-    
+
     def is_valid(self, code: str) -> bool:
         """Check if code is valid."""
         return code in self.codes
-    
+
     def get_description(self, code: str) -> str | None:
         """Get description for code."""
         return self.codes.get(code)
@@ -36,21 +38,21 @@ class CodeSet:
 
 class CodeRegistry:
     """Registry of X12 code sets.
-    
+
     Provides access to standard X12 code sets for validation.
-    
+
     Example:
         >>> registry = CodeRegistry()
         >>> entity_codes = registry.get_code_set("entity_identifier")
         >>> entity_codes.is_valid("85")
         True
     """
-    
+
     def __init__(self) -> None:
         """Initialize registry with built-in code sets."""
         self._code_sets: dict[str, CodeSet] = {}
         self._load_builtin_code_sets()
-    
+
     def _load_builtin_code_sets(self) -> None:
         """Load built-in X12 code sets."""
         # Entity Identifier Codes (NM101)
@@ -91,7 +93,7 @@ class CodeRegistry:
                 "VN": "Vendor",
             },
         )
-        
+
         # Place of Service Codes
         self._code_sets["place_of_service"] = CodeSet(
             name="place_of_service",
@@ -149,7 +151,7 @@ class CodeRegistry:
                 "99": "Other Place of Service",
             },
         )
-        
+
         # Claim Status Codes (CLP02)
         self._code_sets["claim_status"] = CodeSet(
             name="claim_status",
@@ -167,7 +169,7 @@ class CodeRegistry:
                 "25": "Predetermination Pricing Only - No Payment",
             },
         )
-        
+
         # Claim Filing Indicator Codes
         self._code_sets["claim_filing_indicator"] = CodeSet(
             name="claim_filing_indicator",
@@ -199,7 +201,7 @@ class CodeRegistry:
                 "ZZ": "Mutually Defined",
             },
         )
-        
+
         # Gender Codes
         self._code_sets["gender"] = CodeSet(
             name="gender",
@@ -210,7 +212,7 @@ class CodeRegistry:
                 "U": "Unknown",
             },
         )
-        
+
         # Relationship Codes
         self._code_sets["relationship"] = CodeSet(
             name="relationship",
@@ -227,10 +229,10 @@ class CodeRegistry:
                 "G8": "Other Relationship",
             },
         )
-        
+
         # Load extended code sets
         self._load_extended_code_sets()
-    
+
     def _load_extended_code_sets(self) -> None:
         """Load extended code sets for healthcare transactions."""
         # Claim Adjustment Reason Codes (CARC) - most common
@@ -254,7 +256,7 @@ class CodeRegistry:
                 "197": "Precertification/authorization absent",
             },
         )
-        
+
         # Remittance Advice Remark Codes (RARC) - most common
         self._code_sets["remittance_advice_remark"] = CodeSet(
             name="remittance_advice_remark",
@@ -273,7 +275,7 @@ class CodeRegistry:
                 "N362": "Missing/incomplete/invalid tooth number",
             },
         )
-        
+
         # Service Type Codes (270/271)
         self._code_sets["service_type"] = CodeSet(
             name="service_type",
@@ -296,7 +298,7 @@ class CodeRegistry:
                 "MH": "Mental Health",
             },
         )
-        
+
         # Diagnosis Type Qualifiers
         self._code_sets["diagnosis_type_qualifier"] = CodeSet(
             name="diagnosis_type_qualifier",
@@ -312,7 +314,7 @@ class CodeRegistry:
                 "BF": "Other Diagnosis - ICD-9-CM",
             },
         )
-        
+
         # Procedure Code Qualifiers
         self._code_sets["procedure_code_qualifier"] = CodeSet(
             name="procedure_code_qualifier",
@@ -325,7 +327,7 @@ class CodeRegistry:
                 "ZZ": "Mutually Defined",
             },
         )
-        
+
         # Claim Frequency Codes
         self._code_sets["claim_frequency"] = CodeSet(
             name="claim_frequency",
@@ -338,7 +340,7 @@ class CodeRegistry:
                 "8": "Void/Cancel of Prior Claim",
             },
         )
-        
+
         # Provider Taxonomy Codes (common)
         self._code_sets["provider_taxonomy"] = CodeSet(
             name="provider_taxonomy",
@@ -355,7 +357,7 @@ class CodeRegistry:
                 "367A00000X": "Advanced Practice Midwife",
             },
         )
-        
+
         # Revenue Codes (UB-04)
         self._code_sets["revenue_code"] = CodeSet(
             name="revenue_code",
@@ -377,7 +379,7 @@ class CodeRegistry:
                 "0636": "Drugs Requiring Detailed Coding",
             },
         )
-        
+
         # Modifier Codes
         self._code_sets["modifier"] = CodeSet(
             name="modifier",
@@ -400,7 +402,7 @@ class CodeRegistry:
                 "XU": "Unusual Non-Overlapping Service",
             },
         )
-        
+
         # Unit of Measure Codes
         self._code_sets["unit_of_measure"] = CodeSet(
             name="unit_of_measure",
@@ -416,7 +418,7 @@ class CodeRegistry:
                 "F2": "International Unit",
             },
         )
-        
+
         # Adjustment Group Codes (CAS)
         self._code_sets["adjustment_group"] = CodeSet(
             name="adjustment_group",
@@ -429,7 +431,7 @@ class CodeRegistry:
                 "PR": "Patient Responsibility",
             },
         )
-        
+
         # Eligibility/Benefit Information Codes (EB01)
         self._code_sets["eligibility_benefit_info"] = CodeSet(
             name="eligibility_benefit_info",
@@ -471,7 +473,7 @@ class CodeRegistry:
                 "Y": "Spend Down",
             },
         )
-        
+
         # Time Period Qualifier Codes (EB06)
         self._code_sets["time_period_qualifier"] = CodeSet(
             name="time_period_qualifier",
@@ -497,29 +499,29 @@ class CodeRegistry:
                 "36": "Admission",
             },
         )
-    
+
     def get_code_set(self, name: str) -> CodeSet | None:
         """Get code set by name.
-        
+
         Args:
             name: Code set name.
-            
+
         Returns:
             CodeSet or None if not found.
         """
         return self._code_sets.get(name)
-    
+
     def list_code_sets(self) -> list[str]:
         """List all available code set names.
-        
+
         Returns:
             List of code set names.
         """
         return list(self._code_sets.keys())
-    
+
     def register(self, code_set: CodeSet) -> None:
         """Register a custom code set.
-        
+
         Args:
             code_set: CodeSet to register.
         """

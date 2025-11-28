@@ -3,6 +3,7 @@ X12 Trading partner configuration classes.
 
 Defines trading partner data structures and registry.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -15,13 +16,14 @@ if TYPE_CHECKING:
 @dataclass
 class ContactInfo:
     """Trading partner contact information.
-    
+
     Attributes:
         name: Contact name.
         phone: Phone number.
         email: Email address.
         fax: Fax number.
     """
+
     name: str = ""
     phone: str = ""
     email: str = ""
@@ -31,9 +33,9 @@ class ContactInfo:
 @dataclass
 class TradingPartner:
     """Trading partner configuration.
-    
+
     Stores all configuration needed to exchange EDI with a trading partner.
-    
+
     Attributes:
         partner_id: Unique internal identifier.
         name: Human-readable partner name.
@@ -49,6 +51,7 @@ class TradingPartner:
         is_production: Whether this is a production partner.
         preferred_version: Preferred X12 version.
     """
+
     partner_id: str
     name: str
     interchange_id: str = ""
@@ -56,16 +59,16 @@ class TradingPartner:
     application_sender_code: str = ""
     application_receiver_code: str = ""
     supported_transactions: list[str] = field(default_factory=list)
-    delimiters: "Delimiters | None" = None
+    delimiters: Delimiters | None = None
     requires_997: bool = False
     requires_999: bool = False
     contact: ContactInfo | None = None
     is_production: bool = True
     preferred_version: str = "005010"
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize partner to dictionary.
-        
+
         Returns:
             Dictionary representation.
         """
@@ -82,7 +85,7 @@ class TradingPartner:
             "is_production": self.is_production,
             "preferred_version": self.preferred_version,
         }
-        
+
         if self.contact:
             result["contact"] = {
                 "name": self.contact.name,
@@ -90,7 +93,7 @@ class TradingPartner:
                 "email": self.contact.email,
                 "fax": self.contact.fax,
             }
-        
+
         if self.delimiters:
             result["delimiters"] = {
                 "element": self.delimiters.element,
@@ -98,28 +101,29 @@ class TradingPartner:
                 "component": self.delimiters.component,
                 "repetition": self.delimiters.repetition,
             }
-        
+
         return result
-    
+
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TradingPartner":
+    def from_dict(cls, data: dict[str, Any]) -> TradingPartner:
         """Deserialize partner from dictionary.
-        
+
         Args:
             data: Dictionary representation.
-            
+
         Returns:
             TradingPartner instance.
         """
         contact = None
         if "contact" in data and data["contact"]:
             contact = ContactInfo(**data["contact"])
-        
+
         delimiters = None
         if "delimiters" in data and data["delimiters"]:
             from x12.core.delimiters import Delimiters
+
             delimiters = Delimiters(**data["delimiters"])
-        
+
         return cls(
             partner_id=data.get("partner_id", ""),
             name=data.get("name", ""),
@@ -135,102 +139,102 @@ class TradingPartner:
             contact=contact,
             delimiters=delimiters,
         )
-    
+
     def validate(self) -> list[str]:
         """Validate partner configuration.
-        
+
         Returns:
             List of validation error messages.
         """
         errors = []
-        
+
         if not self.partner_id:
             errors.append("Partner ID is required")
-        
+
         if not self.name:
             errors.append("Partner name is required")
-        
+
         if self.interchange_id and len(self.interchange_id) > 15:
             errors.append("Interchange ID must be <= 15 characters")
-        
+
         if self.interchange_qualifier and len(self.interchange_qualifier) != 2:
             errors.append("Interchange qualifier must be 2 characters")
-        
+
         return errors
 
 
 class PartnerRegistry:
     """Registry for managing trading partners.
-    
+
     Provides CRUD operations for trading partner configurations.
-    
+
     Example:
         >>> registry = PartnerRegistry()
         >>> registry.add(TradingPartner("P001", "Acme"))
         >>> partner = registry.get("P001")
     """
-    
+
     def __init__(self) -> None:
         """Initialize empty registry."""
         self._partners: dict[str, TradingPartner] = {}
         self._by_interchange: dict[str, TradingPartner] = {}
-    
+
     def add(self, partner: TradingPartner) -> None:
         """Add partner to registry.
-        
+
         Args:
             partner: Trading partner to add.
         """
         self._partners[partner.partner_id] = partner
-        
+
         if partner.interchange_id and partner.interchange_qualifier:
             key = f"{partner.interchange_id}:{partner.interchange_qualifier}"
             self._by_interchange[key] = partner
-    
+
     def get(self, partner_id: str) -> TradingPartner | None:
         """Get partner by ID.
-        
+
         Args:
             partner_id: Partner identifier.
-            
+
         Returns:
             TradingPartner or None if not found.
         """
         return self._partners.get(partner_id)
-    
+
     def get_by_interchange_id(
         self,
         interchange_id: str,
         qualifier: str,
     ) -> TradingPartner | None:
         """Find partner by interchange ID and qualifier.
-        
+
         Args:
             interchange_id: ISA sender/receiver ID.
             qualifier: ID qualifier.
-            
+
         Returns:
             TradingPartner or None if not found.
         """
         key = f"{interchange_id}:{qualifier}"
         return self._by_interchange.get(key)
-    
+
     def list_all(self) -> list[TradingPartner]:
         """List all registered partners.
-        
+
         Returns:
             List of all trading partners.
         """
         return list(self._partners.values())
-    
+
     def remove(self, partner_id: str) -> None:
         """Remove partner from registry.
-        
+
         Args:
             partner_id: Partner identifier to remove.
         """
         partner = self._partners.pop(partner_id, None)
-        
+
         if partner and partner.interchange_id and partner.interchange_qualifier:
             key = f"{partner.interchange_id}:{partner.interchange_qualifier}"
             self._by_interchange.pop(key, None)

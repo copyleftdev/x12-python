@@ -3,20 +3,22 @@ X12 EDI Validation Framework.
 
 Multi-level validation: syntax, structure, element, semantic.
 """
+
 from __future__ import annotations
 
-import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from x12.models import Segment, TransactionSet
+    from x12.models import TransactionSet
 
 
 class ValidationSeverity(Enum):
     """Severity level for validation results."""
+
     ERROR = auto()
     WARNING = auto()
     INFO = auto()
@@ -24,6 +26,7 @@ class ValidationSeverity(Enum):
 
 class ValidationCategory(Enum):
     """Category of validation rule."""
+
     SYNTAX = auto()
     STRUCTURE = auto()
     ELEMENT = auto()
@@ -34,7 +37,7 @@ class ValidationCategory(Enum):
 @dataclass
 class ValidationResult:
     """A single validation result.
-    
+
     Attributes:
         rule_id: Identifier for the rule that produced this result.
         message: Human-readable description.
@@ -45,6 +48,7 @@ class ValidationResult:
         element_index: Element position (1-indexed).
         actual: The actual value found.
     """
+
     rule_id: str
     message: str
     severity: ValidationSeverity
@@ -53,7 +57,7 @@ class ValidationResult:
     segment_position: int | None = None
     element_index: int | None = None
     actual: str | None = None
-    
+
     def __repr__(self) -> str:
         loc = ""
         if self.segment_id:
@@ -66,6 +70,7 @@ class ValidationResult:
 @dataclass
 class ValidationRule:
     """A validation rule definition."""
+
     rule_id: str
     description: str
     validator: Callable[..., bool]
@@ -76,22 +81,23 @@ class ValidationRule:
 @dataclass
 class ValidationReport:
     """Complete validation report.
-    
+
     Attributes:
         is_valid: True if no errors.
         errors: List of error results.
         warnings: List of warning results.
         results: All results.
     """
+
     results: list[ValidationResult] = field(default_factory=list)
     _errors: list[ValidationResult] = field(default_factory=list)
     _warnings: list[ValidationResult] = field(default_factory=list)
-    
+
     @property
     def is_valid(self) -> bool:
         """True if no errors."""
         return self.error_count == 0
-    
+
     @property
     def errors(self) -> list[ValidationResult]:
         """Get all error results."""
@@ -100,50 +106,52 @@ class ValidationReport:
         if not self._errors and self.results:
             self._errors = [r for r in self.results if r.severity == ValidationSeverity.ERROR]
         return self._errors
-    
+
     @errors.setter
     def errors(self, value: list[ValidationResult]) -> None:
         """Set errors list directly."""
         self._errors = value
-    
+
     @property
     def warnings(self) -> list[ValidationResult]:
         """Get all warning results."""
         if not self._warnings and self.results:
             self._warnings = [r for r in self.results if r.severity == ValidationSeverity.WARNING]
         return self._warnings
-    
+
     @warnings.setter
     def warnings(self, value: list[ValidationResult]) -> None:
         """Set warnings list directly."""
         self._warnings = value
-    
+
     @property
     def error_count(self) -> int:
         """Number of errors."""
         return len(self.errors)
-    
+
     @property
     def warning_count(self) -> int:
         """Number of warnings."""
         return len(self.warnings)
-    
+
     def add_error(
-        self, 
-        rule_id: str, 
+        self,
+        rule_id: str,
         message: str,
         category: ValidationCategory = ValidationCategory.SYNTAX,
         **kwargs,
     ) -> None:
         """Add an error result."""
-        self.results.append(ValidationResult(
-            rule_id=rule_id,
-            message=message,
-            severity=ValidationSeverity.ERROR,
-            category=category,
-            **kwargs,
-        ))
-    
+        self.results.append(
+            ValidationResult(
+                rule_id=rule_id,
+                message=message,
+                severity=ValidationSeverity.ERROR,
+                category=category,
+                **kwargs,
+            )
+        )
+
     def add_warning(
         self,
         rule_id: str,
@@ -152,20 +160,22 @@ class ValidationReport:
         **kwargs,
     ) -> None:
         """Add a warning result."""
-        self.results.append(ValidationResult(
-            rule_id=rule_id,
-            message=message,
-            severity=ValidationSeverity.WARNING,
-            category=category,
-            **kwargs,
-        ))
+        self.results.append(
+            ValidationResult(
+                rule_id=rule_id,
+                message=message,
+                severity=ValidationSeverity.WARNING,
+                category=category,
+                **kwargs,
+            )
+        )
 
 
 class X12Validator:
     """X12 EDI Validator.
-    
+
     Performs multi-level validation of X12 content.
-    
+
     Example:
         >>> validator = X12Validator()
         >>> report = validator.validate(edi_content)
@@ -173,43 +183,43 @@ class X12Validator:
         ...     for error in report.errors:
         ...         print(error)
     """
-    
+
     def __init__(
-        self, 
+        self,
         strict: bool = False,
         custom_rules: list[ValidationRule] | None = None,
     ) -> None:
         """Initialize validator.
-        
+
         Args:
             strict: If True, treat warnings as errors.
             custom_rules: Additional validation rules.
         """
         self.strict = strict
         self.custom_rules = custom_rules or []
-    
+
     def validate(
-        self, 
-        content: str, 
+        self,
+        content: str,
         version: str | None = None,
     ) -> ValidationReport:
         """Validate EDI content.
-        
+
         Args:
             content: Raw EDI string.
             version: Implementation version for validation.
-        
+
         Returns:
             ValidationReport with all results.
         """
         report = ValidationReport()
-        
+
         if not content or not content.strip():
             report.add_error("EMPTY_CONTENT", "Content is empty")
             return report
-        
+
         content = content.strip()
-        
+
         # Check for ISA
         if not content.startswith("ISA"):
             report.add_error(
@@ -218,34 +228,34 @@ class X12Validator:
                 category=ValidationCategory.STRUCTURE,
             )
             return report
-        
+
         # Parse and validate structure
-        from x12.core.parser import SegmentParser
         from x12.core.delimiters import Delimiters
-        
+        from x12.core.parser import SegmentParser
+
         try:
             delimiters = Delimiters.from_isa(content)
         except ValueError as e:
             report.add_error("INVALID_ISA", str(e))
             return report
-        
+
         parser = SegmentParser(delimiters=delimiters)
         segments = list(parser.parse(content))
-        
+
         # Validate envelope structure
         self._validate_envelope(segments, report)
-        
+
         # Validate control number matching
         self._validate_control_numbers(segments, report)
-        
+
         # Validate segment counts
         self._validate_segment_counts(segments, report)
-        
+
         # Validate transaction-specific requirements
         self._validate_transaction_requirements(segments, report, version)
-        
+
         return report
-    
+
     def validate_segment(
         self,
         segment_str: str,
@@ -253,30 +263,30 @@ class X12Validator:
         version: str | None = None,
     ) -> ValidationReport:
         """Validate a single segment.
-        
+
         Args:
             segment_str: Raw segment string.
             segment_id: Expected segment ID.
             version: Implementation version.
-        
+
         Returns:
             ValidationReport for this segment.
         """
         report = ValidationReport()
-        
-        from x12.core.parser import SegmentParser
+
         from x12.core.delimiters import Delimiters
-        
+        from x12.core.parser import SegmentParser
+
         delimiters = Delimiters()
         parser = SegmentParser(delimiters=delimiters)
-        
+
         segments = list(parser.parse(segment_str))
         if not segments:
             report.add_error("EMPTY_SEGMENT", "No segment found")
             return report
-        
+
         segment = segments[0]
-        
+
         # Validate based on segment type
         if segment.segment_id == "NM1":
             self._validate_nm1(segment, report, version)
@@ -294,47 +304,47 @@ class X12Validator:
             self._validate_po1(segment, report, version)
         elif segment.segment_id == "REF":
             self._validate_ref(segment, report, version)
-        
+
         return report
-    
+
     def validate_transaction(
         self,
-        transaction: "TransactionSet",
+        transaction: TransactionSet,
         version: str | None = None,
     ) -> ValidationReport:
         """Validate a transaction set.
-        
+
         Args:
             transaction: Parsed transaction.
             version: Implementation version.
-        
+
         Returns:
             ValidationReport for this transaction.
         """
         report = ValidationReport()
-        
+
         # Check for required segments based on transaction type
         if transaction.transaction_set_id == "837":
             self._validate_837_structure(transaction, report, version)
         elif transaction.transaction_set_id == "850":
             self._validate_850_structure(transaction, report, version)
-        
+
         return report
-    
+
     def _validate_envelope(
-        self, 
-        segments: list, 
+        self,
+        segments: list,
         report: ValidationReport,
     ) -> None:
         """Validate ISA/IEA, GS/GE, ST/SE structure."""
         seg_ids = [s.segment_id for s in segments]
-        
+
         # Check ISA/IEA
         if "ISA" not in seg_ids:
             report.add_error("MISSING_ISA", "ISA segment required")
         if "IEA" not in seg_ids:
             report.add_error("MISSING_IEA", "IEA segment required")
-        
+
         # Check GS/GE
         gs_count = seg_ids.count("GS")
         ge_count = seg_ids.count("GE")
@@ -344,7 +354,7 @@ class X12Validator:
                 f"GS count ({gs_count}) != GE count ({ge_count})",
                 category=ValidationCategory.STRUCTURE,
             )
-        
+
         # Check ST/SE
         st_count = seg_ids.count("ST")
         se_count = seg_ids.count("SE")
@@ -354,7 +364,7 @@ class X12Validator:
                 f"ST count ({st_count}) != SE count ({se_count})",
                 category=ValidationCategory.STRUCTURE,
             )
-    
+
     def _validate_control_numbers(
         self,
         segments: list,
@@ -363,33 +373,33 @@ class X12Validator:
         """Validate control number matching."""
         st_segments = [s for s in segments if s.segment_id == "ST"]
         se_segments = [s for s in segments if s.segment_id == "SE"]
-        
-        for st, se in zip(st_segments, se_segments):
+
+        for st, se in zip(st_segments, se_segments, strict=False):
             st_ctrl = st[2].value if st[2] else ""
             se_ctrl = se[2].value if se[2] else ""
-            
+
             if st_ctrl != se_ctrl:
                 report.add_error(
                     "CTRL_NUM_MISMATCH",
                     f"ST/SE control number mismatch: ST={st_ctrl}, SE={se_ctrl}",
                     category=ValidationCategory.STRUCTURE,
                 )
-        
+
         # GS/GE control numbers
         gs_segments = [s for s in segments if s.segment_id == "GS"]
         ge_segments = [s for s in segments if s.segment_id == "GE"]
-        
-        for gs, ge in zip(gs_segments, ge_segments):
+
+        for gs, ge in zip(gs_segments, ge_segments, strict=False):
             gs_ctrl = gs[6].value if gs[6] else ""
             ge_ctrl = ge[2].value if ge[2] else ""
-            
+
             if gs_ctrl != ge_ctrl:
                 report.add_error(
                     "GS_GE_CTRL_MISMATCH",
                     f"GS/GE control number mismatch: GS={gs_ctrl}, GE={ge_ctrl}",
                     category=ValidationCategory.STRUCTURE,
                 )
-    
+
     def _validate_segment_counts(
         self,
         segments: list,
@@ -399,20 +409,20 @@ class X12Validator:
         # Find ST/SE pairs and count segments between them
         st_positions = [i for i, s in enumerate(segments) if s.segment_id == "ST"]
         se_positions = [i for i, s in enumerate(segments) if s.segment_id == "SE"]
-        
-        for st_pos, se_pos in zip(st_positions, se_positions):
+
+        for st_pos, se_pos in zip(st_positions, se_positions, strict=False):
             # Count includes ST and SE
             actual_count = se_pos - st_pos + 1
             se_seg = segments[se_pos]
             declared_count = se_seg[1].as_int() if se_seg[1] else 0
-            
+
             if actual_count != declared_count:
                 report.add_error(
                     "SEGMENT_COUNT_MISMATCH",
                     f"Segment count mismatch: SE01 declares {declared_count}, found {actual_count}",
                     category=ValidationCategory.STRUCTURE,
                 )
-    
+
     def _validate_nm1(
         self,
         segment,
@@ -423,7 +433,7 @@ class X12Validator:
         # NM103 (name) required for most entity types
         entity_code = segment[1].value if segment[1] else ""
         name = segment[3].value if segment[3] else ""
-        
+
         if entity_code in ("85", "IL", "QC", "PR") and not name:
             report.add_error(
                 "NM1_NAME_REQUIRED",
@@ -432,7 +442,7 @@ class X12Validator:
                 element_index=3,
                 category=ValidationCategory.ELEMENT,
             )
-        
+
         # Check name length
         if name and len(name) > 60:
             report.add_error(
@@ -442,11 +452,11 @@ class X12Validator:
                 element_index=3,
                 category=ValidationCategory.ELEMENT,
             )
-        
+
         # NM108/09 validation
         id_qualifier = segment[8].value if segment[8] else ""
         id_value = segment[9].value if segment[9] else ""
-        
+
         if id_value and not id_qualifier:
             report.add_error(
                 "NM1_ID_REQUIRES_QUALIFIER",
@@ -455,7 +465,7 @@ class X12Validator:
                 element_index=8,
                 category=ValidationCategory.SEMANTIC,
             )
-        
+
         # Check if qualifier position contains an ID-like value (misplaced ID)
         if id_qualifier and len(id_qualifier) > 3 and id_qualifier.isdigit():
             report.add_warning(
@@ -465,21 +475,20 @@ class X12Validator:
                 element_index=8,
                 category=ValidationCategory.SEMANTIC,
             )
-        
+
         # NPI validation
-        if id_qualifier == "XX" and id_value:
-            if not self._validate_npi(id_value):
-                report.add_error(
-                    "NM1_INVALID_NPI",
-                    f"Invalid NPI: {id_value}",
-                    segment_id="NM1",
-                    element_index=9,
-                    category=ValidationCategory.HIPAA,
-                )
-    
+        if id_qualifier == "XX" and id_value and not self._validate_npi(id_value):
+            report.add_error(
+                "NM1_INVALID_NPI",
+                f"Invalid NPI: {id_value}",
+                segment_id="NM1",
+                element_index=9,
+                category=ValidationCategory.HIPAA,
+            )
+
     def _validate_npi(self, npi: str) -> bool:
         """Validate NPI using Luhn algorithm.
-        
+
         NPI is a 10-digit number. For validation, prefix with 80840
         and apply Luhn check (ISO/IEC 7812).
         """
@@ -487,11 +496,11 @@ class X12Validator:
             return False
         if not npi.isdigit():
             return False
-        
+
         # NPI Luhn check: prefix with 80840, then standard Luhn
         # The check digit is already included in the NPI
         prefixed = "80840" + npi[:9]  # Without check digit
-        
+
         total = 0
         for i, digit in enumerate(reversed(prefixed)):
             d = int(digit)
@@ -500,11 +509,11 @@ class X12Validator:
                 if d > 9:
                     d -= 9
             total += d
-        
+
         # Check digit should make (total + check) % 10 == 0
         check_digit = int(npi[9])
         return (total + check_digit) % 10 == 0
-    
+
     def _validate_dtp(
         self,
         segment,
@@ -512,10 +521,10 @@ class X12Validator:
         version: str | None,
     ) -> None:
         """Validate DTP segment."""
-        qualifier = segment[1].value if segment[1] else ""  # DTP01 - Qualifier
+        segment[1].value if segment[1] else ""  # DTP01 - Qualifier
         format_qualifier = segment[2].value if segment[2] else ""  # DTP02 - Format
         date_value = segment[3].value if segment[3] else ""  # DTP03 - Value
-        
+
         # Validate date format qualifier D8 for 8-char dates
         if format_qualifier == "D8":
             if date_value and not self._is_valid_date(date_value):
@@ -544,7 +553,7 @@ class X12Validator:
                     element_index=2,
                     category=ValidationCategory.ELEMENT,
                 )
-    
+
     def _is_valid_date(self, date_str: str) -> bool:
         """Check if date string is valid CCYYMMDD."""
         if len(date_str) != 8:
@@ -554,7 +563,7 @@ class X12Validator:
             return True
         except ValueError:
             return False
-    
+
     def _validate_clm(
         self,
         segment,
@@ -572,7 +581,7 @@ class X12Validator:
                 element_index=1,
                 category=ValidationCategory.ELEMENT,
             )
-        
+
         # CLM02 - Total charge required
         charge = segment[2].value if segment[2] else ""
         if not charge:
@@ -594,7 +603,7 @@ class X12Validator:
                     element_index=2,
                     category=ValidationCategory.ELEMENT,
                 )
-        
+
         # CLM05 - Facility code composite required for HIPAA
         facility = segment[5].value if segment[5] else ""
         if not facility:
@@ -605,7 +614,7 @@ class X12Validator:
                 element_index=5,
                 category=ValidationCategory.HIPAA,
             )
-    
+
     def _validate_hi(
         self,
         segment,
@@ -615,7 +624,7 @@ class X12Validator:
         """Validate HI (diagnosis) segment."""
         if segment[1]:
             elem = segment[1]
-            if hasattr(elem, 'components') and elem.components:
+            if hasattr(elem, "components") and elem.components:
                 qualifier = elem.components[0].value if elem.components else ""
                 if qualifier not in ("ABK", "ABF", "ABJ", "ABN", "APR", "BK", "BF"):
                     report.add_warning(
@@ -625,7 +634,7 @@ class X12Validator:
                         element_index=1,
                         category=ValidationCategory.ELEMENT,
                     )
-    
+
     def _validate_sv1(
         self,
         segment,
@@ -635,7 +644,7 @@ class X12Validator:
         """Validate SV1 segment."""
         # SV101 - procedure code required
         proc = segment[1]
-        if not proc or (hasattr(proc, 'value') and not proc.value):
+        if not proc or (hasattr(proc, "value") and not proc.value):
             report.add_error(
                 "SV1_PROC_REQUIRED",
                 "SV101 procedure code required",
@@ -643,7 +652,7 @@ class X12Validator:
                 element_index=1,
                 category=ValidationCategory.ELEMENT,
             )
-        
+
         # SV102 - charge required
         charge = segment[2].value if segment[2] else ""
         if not charge:
@@ -654,7 +663,7 @@ class X12Validator:
                 element_index=2,
                 category=ValidationCategory.ELEMENT,
             )
-        
+
         # SV104 - units required for HIPAA
         units = segment[4].value if segment[4] else ""
         if not units:
@@ -665,7 +674,7 @@ class X12Validator:
                 element_index=4,
                 category=ValidationCategory.HIPAA,
             )
-    
+
     def _validate_beg(
         self,
         segment,
@@ -682,7 +691,7 @@ class X12Validator:
                 element_index=3,
                 category=ValidationCategory.ELEMENT,
             )
-    
+
     def _validate_po1(
         self,
         segment,
@@ -699,7 +708,7 @@ class X12Validator:
                 element_index=2,
                 category=ValidationCategory.ELEMENT,
             )
-    
+
     def _validate_ref(
         self,
         segment,
@@ -709,18 +718,17 @@ class X12Validator:
         """Validate REF segment."""
         qualifier = segment[1].value if segment[1] else ""
         value = segment[2].value if segment[2] else ""
-        
+
         # EIN validation
-        if qualifier == "EI" and value:
-            if len(value) != 9 or not value.isdigit():
-                report.add_error(
-                    "REF_INVALID_EIN",
-                    f"Invalid EIN (must be 9 digits): {value}",
-                    segment_id="REF",
-                    element_index=2,
-                    category=ValidationCategory.HIPAA,
-                )
-    
+        if qualifier == "EI" and value and (len(value) != 9 or not value.isdigit()):
+            report.add_error(
+                "REF_INVALID_EIN",
+                f"Invalid EIN (must be 9 digits): {value}",
+                segment_id="REF",
+                element_index=2,
+                category=ValidationCategory.HIPAA,
+            )
+
     def _validate_transaction_requirements(
         self,
         segments: list,
@@ -732,10 +740,10 @@ class X12Validator:
         st_seg = next((s for s in segments if s.segment_id == "ST"), None)
         if not st_seg:
             return
-        
+
         txn_type = st_seg[1].value if st_seg[1] else ""
         seg_ids = [s.segment_id for s in segments]
-        
+
         if txn_type == "837":
             # 837 requires BHT
             if "BHT" not in seg_ids:
@@ -752,16 +760,16 @@ class X12Validator:
                     "BEG segment required in 850 transaction",
                     category=ValidationCategory.STRUCTURE,
                 )
-    
+
     def _validate_837_structure(
         self,
-        transaction: "TransactionSet",
+        transaction: TransactionSet,
         report: ValidationReport,
         version: str | None,
     ) -> None:
         """Validate 837 transaction structure."""
         root = transaction.root_loop
-        
+
         # Check for BHT
         if not root.has_segment("BHT"):
             has_bht = False
@@ -775,16 +783,16 @@ class X12Validator:
                     "BHT segment required in 837",
                     category=ValidationCategory.STRUCTURE,
                 )
-    
+
     def _validate_850_structure(
         self,
-        transaction: "TransactionSet",
+        transaction: TransactionSet,
         report: ValidationReport,
         version: str | None,
     ) -> None:
         """Validate 850 transaction structure."""
         root = transaction.root_loop
-        
+
         # Check for BEG
         if not root.has_segment("BEG"):
             report.add_error(
