@@ -1,11 +1,68 @@
-# X12 EDI Python Toolkit
+```
+██╗  ██╗ ██╗██████╗     ███████╗██████╗ ██╗
+╚██╗██╔╝███║╚════██╗    ██╔════╝██╔══██╗██║
+ ╚███╔╝ ╚██║ █████╔╝    █████╗  ██║  ██║██║
+ ██╔██╗  ██║██╔═══╝     ██╔══╝  ██║  ██║██║
+██╔╝ ██╗ ██║███████╗    ███████╗██████╔╝██║
+╚═╝  ╚═╝ ╚═╝╚══════╝    ╚══════╝╚═════╝ ╚═╝
+        P Y T H O N   T O O L K I T
+```
 
-[![CI](https://github.com/donjohnson/x12-edi-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/donjohnson/x12-edi-tools/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-83%25-green)](https://github.com/donjohnson/x12-edi-tools)
+<div align="center">
+
+[![CI](https://github.com/copyleftdev/x12-python/actions/workflows/ci.yml/badge.svg)](https://github.com/copyleftdev/x12-python/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-83%25-green)](https://github.com/copyleftdev/x12-python)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-A comprehensive Python library for parsing, validating, and generating X12 EDI transactions.
+**The ultimate Python toolkit for X12 EDI processing**
+
+*Parse, validate, and generate healthcare & supply chain transactions with HIPAA compliance*
+
+</div>
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Input["📄 Input"]
+        EDI[("EDI File\n837/835/850...")]
+    end
+
+    subgraph Core["⚙️ Core Engine"]
+        direction TB
+        TOK[Tokenizer] --> PARSE[Parser]
+        PARSE --> LOOP[Loop Builder]
+        LOOP --> VAL[Validator]
+    end
+
+    subgraph Schema["📋 Schema & Codes"]
+        direction TB
+        SCH[(Transaction\nSchemas)]
+        CODE[(Code\nSets)]
+    end
+
+    subgraph Output["📤 Output"]
+        direction TB
+        MODEL[Pydantic Models]
+        ACK[997/999 Acks]
+        GEN[EDI Generator]
+    end
+
+    EDI --> TOK
+    SCH -.-> VAL
+    CODE -.-> VAL
+    VAL --> MODEL
+    MODEL --> ACK
+    MODEL --> GEN
+
+    style Input fill:#e1f5fe
+    style Core fill:#fff3e0
+    style Schema fill:#f3e5f5
+    style Output fill:#e8f5e9
+```
 
 ## Features
 
