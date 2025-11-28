@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "x12"
+name = "x12-python"
 version = "0.1.0"
 description = "The ultimate Python toolkit for X12 EDI processing"
 readme = "README.md"
@@ -62,10 +62,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/donjohnson/x12-edi-tools"
-Documentation = "https://github.com/donjohnson/x12-edi-tools#readme"
-Repository = "https://github.com/donjohnson/x12-edi-tools"
-Issues = "https://github.com/donjohnson/x12-edi-tools/issues"
+Homepage = "https://github.com/copyleftdev/x12-python"
+Documentation = "https://github.com/copyleftdev/x12-python#readme"
+Repository = "https://github.com/copyleftdev/x12-python"
+Issues = "https://github.com/copyleftdev/x12-python/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["x12"]

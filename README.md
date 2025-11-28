@@ -78,14 +78,14 @@ flowchart TB
 ## Installation
 
 ```bash
-pip install x12-edi-tools
+pip install x12-python
 ```
 
 Or install from source:
 
 ```bash
-git clone https://github.com/donjohnson/x12-edi-tools.git
-cd x12-edi-tools
+git clone https://github.com/copyleftdev/x12-python.git
+cd x12-python
 pip install -e .
 ```
 
